@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Processing</title>
+</head>
+<body>
+    <h1>Video Processing</h1>
+    <form id="process-form">
+        <label for="input_video">Input Video Path:</label>
+        <input type="text" id="input_video" name="input_video" required><br>
+        <label for="output_video">Output Video Path:</label>
+        <input type="text" id="output_video" name="output_video" required><br>
+        <button type="submit">Process</button>
+    </form>
+
+    <div id="result">
+        <h2>Processed Frame</h2>
+        <img id="processed-frame" src="" alt="Processed Frame">
+    </div>
+
+    <form id="warp-form" style="display:none;">
+        <h2>Warp Image</h2>
+        <input type="hidden" id="frame_index" name="frame_index">
+        <input type="hidden" id="frame_path" name="frame_path">
+        <label for="point1">Top-left (x1,y1):</label>
+        <input type="text" id="point1" name="point1" required><br>
+        <label for="point2">Top-right (x2,y2):</label>
+        <input type="text" id="point2" name="point2" required><br>
+        <label for="point3">Bottom-right (x3,y3):</label>
+        <input type="text" id="point3" name="point3" required><br>
+        <label for="point4">Bottom-left (x4,y4):</label>
+        <input type="text" id="point4" name="point4" required><br>
+
+        <label for="batter">Batter:</label>
+        <select id="batter" name="batter" required>
+            <option value="Smith">Smith</option>
+            <option value="Warner">Warner</option>
+            <option value="Labuschagne">Labuschagne</option>
+            <!-- Add more batters as needed -->
+        </select><br>
+
+        <label for="bowler_type">Bowler Type:</label>
+        <select id="bowler_type" name="bowler_type" required>
+            <option value="Fast">Fast</option>
+            <option value="Spin">Spin</option>
+            <!-- Add more bowler types as needed -->
+        </select><br>
+
+        <label for="batting_position">Batting Position:</label>
+        <input type="number" id="batting_position" name="batting_position" required><br>
+
+        <label for="innings">Innings:</label>
+        <input type="number" id="innings" name="innings" required><br>
+
+        <label for="around_the_wicket">Around the Wicket:</label>
+        <select id="around_the_wicket" name="around_the_wicket" required>
+            <option value="0">No</option>
+            <option value="1">Yes</option>
+        </select><br>
+
+        <label for="match">Match:</label>
+        <input type="text" id="match" name="match" required><br>
+
+        <button type="submit">Warp</button>
+    </form>
+
+    <div id="warp-result">
+        <h2>Warp Result</h2>
+        <img id="warp-img" src="" alt="Warp Image">
+        <h2>Original Prediction Result</h2>
+        <img id="prediction-original-img" src="" alt="Original Prediction Image">
+        <h2>Warped Prediction Result</h2>
+        <img id="prediction-warped-img" src="" alt="Warped Prediction Image">
+        <h2>Detected Length and Line</h2>
+        <p id="length-line"></p>
+        <h2>Generated SQL Command</h2>
+        <pre id="sql-command"></pre>
+    </div>
+
+    <script>
+        document.getElementById('process-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            fetch('/process', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('processed-frame').src = data.frame_path;
+                document.getElementById('frame_index').value = data.frame_index;
+                document.getElementById('frame_path').value = data.frame_path;
+                document.getElementById('warp-form').style.display = 'block';
+            });
+        });
+
+        document.getElementById('warp-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            fetch('/warp', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    document.getElementById('warp-img').src = data.warp_img_path;
+                    document.getElementById('prediction-original-img').src = data.prediction_original_path;
+                    document.getElementById('prediction-warped-img').src = data.prediction_warped_path;
+                    document.getElementById('length-line').textContent = `Length: ${data.length}, Line: ${data.line}`;
+                    document.getElementById('sql-command').textContent = data.sql_command;
+                }
+            });
+        });
+    </script>
+</body>
+</html>
