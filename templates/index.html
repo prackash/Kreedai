@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Processing</title>
+</head>
+<body>
+    <h1>Video Processing</h1>
+    <form id="process-form">
+        <label for="video">Select video:</label>
+        <input type="file" id="video" name="video" accept="video/*" required>
+        <br>
+        <button type="submit">Process</button>
+    </form>
+
+    <div id="result">
+        <h2>Processed Frame</h2>
+        <img id="processed-frame" src="" alt="Processed Frame">
+    </div>
+
+    <form id="warp-form" style="display:none;">
+        <h2>Warp Image</h2>
+        <input type="hidden" id="frame_index" name="frame_index">
+        <input type="hidden" id="frame_path" name="frame_path">
+        <label for="point1">Top-left (x1,y1):</label>
+        <input type="text" id="point1" name="point1" required><br>
+        <label for="point2">Top-right (x2,y2):</label>
+        <input type="text" id="point2" name="point2" required><br>
+        <label for="point3">Bottom-right (x3,y3):</label>
+        <input type="text" id="point3" name="point3" required><br>
+        <label for="point4">Bottom-left (x4,y4):</label>
+        <input type="text" id="point4" name="point4" required><br>
+
+        <label for="batter">Batter:</label>
+        <select id="batter" name="batter" required>
+            <option value="Smith">Smith</option>
+            <option value="Warner">Warner</option>
+            <option value="Labuschagne">Labuschagne</option>
+            <option value="Marcus Campopiano">Marcus Campopiano</option>
+            <!-- Add more batters as needed -->
+        </select><br>
+
+        <label for="bowler_type">Bowler Type:</label>
+        <select id="bowler_type" name="bowler_type" required>
+            <option value="LOB">LOB</option>
+            <option value="RFM">RFM</option>
+            <option value="LM">LM</option>
+            <option value="RM">RM</option>
+            <option value="LC">LC</option>
+            <option value="RLB">RLB</option>
+            <option value="SLA">SLA</option>
+            <option value="RF">RF</option>
+            <option value="LF">LF</option>
+            <option value="ROB">ROB</option>
+            <option value="LFM">LFM</option>
+            <!-- Add more bowler types as needed -->
+        </select><br>
+
+
+
+        <label for="batting_position">Batting Position:</label>
+        <select id="batting_position" name="batting_position" required>
+            <option value=0>Left Arm</option>
+            <option value=1>Right Arm</option>
+        </select><br>
+    
+
+
+        <label for="innings">Innings:</label>
+        <select id="innings" name="innings" required>
+            <option value=1>1</option>
+            <option value=2>2</option>
+        </select><br>
+    
+
+        <label for="powerplay">Powerplay:</label>
+        <select id="powerplay" name="powerplay" required>
+            <option value=1>1</option>
+            <option value=2>2</option>
+            <option value=3>3</option>
+            <option value=Null>NULL</option>
+        </select><br>
+
+        <label for="around_the_wicket">Around the Wicket:</label>
+        <select id="around_the_wicket" name="around_the_wicket" required>
+            <option value="0">No</option>
+            <option value="1">Yes</option>
+        </select><br>
+
+        <label for="match">Match:</label>
+        <input type="text" id="match" name="match" required><br>
+
+        <button type="submit">Warp</button>
+    </form>
+
+    <div id="warp-result">
+        <h2>Warp Result</h2>
+        <img id="warp-img" src="" alt="Warp Image">
+        <h2>Original Prediction Result</h2>
+        <img id="prediction-original-img" src="" alt="Original Prediction Image">
+        <h2>Warped Prediction Result</h2>
+        <img id="prediction-warped-img" src="" alt="Warped Prediction Image">
+        <h2>Detected Length and Line</h2>
+        <p id="length-line"></p>
+        <h2>SQL Output</h2>
+        <pre id="data"></pre>
+    
+    <table id="data-table" border="1">
+        <thead>
+            <tr>
+                <th>FieldX</th>
+                <th>FieldY</th>
+                <th>Runs</th>
+                <th>Shot</th>
+                <th>Wicket</th>
+            </tr>
+        </thead>
+        <tbody>
+            
+        </tbody>
+    </table>
+    </div>
+    <script>
+        document.getElementById('process-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            fetch('/process', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('processed-frame').src = data.frame_path;
+                document.getElementById('frame_index').value = data.frame_index;
+                document.getElementById('frame_path').value = data.frame_path;
+                document.getElementById('warp-form').style.display = 'block';
+            });
+        });
+
+        document.getElementById('warp-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            fetch('/warp', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if(!response.ok){
+                    throw new Error('Network response was not ok'+ response.statusText)
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log("Data fetched from backends:",data);
+                
+                document.getElementById('warp-img').src = data.warp_img_path;
+                document.getElementById('prediction-original-img').src = data.prediction_original_path;
+                document.getElementById('prediction-warped-img').src = data.prediction_warped_path;
+                document.getElementById('length-line').textContent = `Length: ${data.length}, Line: ${data.line}`;
+                document.getElementById('data').textContent = data.data;
+                
+                
+                const rows=data.rows_dict;
+                if(!Array.isArray(rows)){
+                    throw new Error('rows_dict is not an array');
+                }
+
+                const tbody = document.querySelector('#data-table tbody') ;
+                if(!tbody){
+                    throw new Error('Table body element not found');
+                }
+                tbody.innerHTML='';
+                
+                rows.forEach(row => {
+                    console.log("Processing row:", row);
+                    if (typeof row !== 'object') {
+                    console.error('Row is not an object:', row);
+                    return;
+                  }   
+
+                    // Convert row object to array if necessary
+                    const rowArray = Array.isArray(row) ? row : Object.values(row);
+                    console.log("Converted row:", rowArray);
+
+                    const tr = document.createElement('tr');
+
+                    // Iterate over each item in the row array and create table cells
+                    rowArray.forEach(cell => {
+                        const td = document.createElement('td');
+                        td.textContent = cell;
+                        tr.appendChild(td);
+                    });
+
+                    // Append the row to the table body
+                    tbody.appendChild(tr);
+                });
+                    
+                
+            })
+            .catch(error=>console.error("Error fetching or processing data:",error));
+        });
+    </script>
+</body>
+</html>
